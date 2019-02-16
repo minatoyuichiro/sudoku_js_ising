@@ -76,7 +76,7 @@ $(function(){
   }
  }
 
- var T = 10;
+ var T = 100;
 
  //数字の表示系
  for(var i=0;i<81;i++){
@@ -89,14 +89,14 @@ $(function(){
   }
  }
 
- var L1 = 20;
+ var L1 = 110;
 
  for(var i=0;i<81;i++){
   for(var j=0;j<9;j++){
    h[i][j] = 3.5*L1;
   }
  }
- console.log(h);
+ //console.log(h);
 
  for(var i=0;i<81;i++){
   for(var j=0;j<9;j++){
@@ -105,10 +105,10 @@ $(function(){
    }
   } 
  }
- console.log(J)
+ //console.log(J)
 
  //行ごとに同じ数字が出ないように調整
- var L2 = 1.2;
+ var L2 = 3.5;
  for(var i=0;i<9;i++){
   for(var j=0;j<9;j++){
    for(var k=0;k<9;k++){
@@ -119,8 +119,19 @@ $(function(){
   } 
  }
 
+ //列ごとに同じ数字が出ないように調整
+ for(var i=0;i<9;i++){
+  for(var j=0;j<9;j++){
+   for(var k=0;k<9;k++){
+    for(var l=0;l<9;l++){
+     J[j*9+i][k*9+i][l][l] += 1*L2;
+    }
+   }
+  }
+ }
+
  var anneal = setInterval(function(){
-  for(var kk=0;kk<2000;kk++){
+  for(var kk=0;kk<50000;kk++){
    var x = Math.floor(Math.random()*81);
    var y = Math.floor(Math.random()*9);
    //9こから1
@@ -178,6 +189,52 @@ $(function(){
     }
    }
 
+   //列は違う数字
+   for(var i=0;i<9;i++){
+    if(x%9==0 && x!=i*9){
+     dE += -2*J[x][i*9][y][y]*q[i*9][y]
+    }
+   }
+   for(var i=0;i<9;i++){
+    if(x%9==1 && x!=i*9+1){
+     dE += -2*J[x][i*9+1][y][y]*q[i*9+1][y]
+    }
+   }
+   for(var i=0;i<9;i++){
+    if(x%9==2 && x!=i*9+2){
+     dE += -2*J[x][i*9+2][y][y]*q[i*9+2][y]
+    }
+   }
+   for(var i=0;i<9;i++){
+    if(x%9==3 && x!=i*9+3){
+     dE += -2*J[x][i*9+3][y][y]*q[i*9+3][y]
+    }
+   }
+   for(var i=0;i<9;i++){
+    if(x%9==4 && x!=i*9+4){
+     dE += -2*J[x][i*9+4][y][y]*q[i*9+4][y]
+    }
+   }
+   for(var i=0;i<9;i++){
+    if(x%9==5 && x!=i*9+5){
+     dE += -2*J[x][i*9+5][y][y]*q[i*9+5][y]
+    }
+   }
+   for(var i=0;i<9;i++){
+    if(x%9==6 && x!=i*9+6){
+     dE += -2*J[x][i*9+6][y][y]*q[i*9+6][y]
+    }
+   }
+   for(var i=0;i<9;i++){
+    if(x%9==7 && x!=i*9+7){
+     dE += -2*J[x][i*9+7][y][y]*q[i*9+7][y]
+    }
+   }
+   for(var i=0;i<9;i++){
+    if(x%9==8 && x!=i*9+8){
+     dE += -2*J[x][i*9+8][y][y]*q[i*9+8][y]
+    }
+   }
    dE *= q[x][y];
    if(Math.exp(-dE/T) > Math.random()){
     q[x][y] = -q[x][y]
@@ -195,10 +252,53 @@ $(function(){
   }
  }
 
-  T*=0.99;
+  T*=0.9;
   console.log(T);
-  if(T<0.02){
-   clearInterval(anneal);
+  if(T<0.7){
+   var check = 0;
+   //横チェック
+   for(var m=0;m<9;m++){
+    var E1 = 0
+    for(var i=0+9*m;i<9+9*m;i++){
+     for(var j=0;j<9;j++){
+      if(q[i][j] == 1){
+       E1 += j;
+      }
+     }
+    }
+    console.log(E1);
+    if(E1 != 36 ){
+     check++;
+    }
+   }
+
+   //縦チェック
+   for(var m=0;m<9;m++){
+    var E1 = 0
+    for(var i=0;i<9;i++){
+     for(var j=0;j<9;j++){
+      if(q[i*9+m][j] == 1){
+       E1 += j;
+      }
+     }
+    }
+    console.log(E1);
+    if(E1 != 36 ){
+     check++;
+    }
+   }
+
+   if(check !=0){
+    T=100;
+    for(var i=0;i<81;i++){
+     for(var j=0;j<9;j++){
+      q[i][j] = Math.floor(Math.random()-0.5)*2+1;
+     }
+    }
+    clearInterval(anneal);
+   }else{
+    clearInterval(anneal);
+   };
   }
  },1)
  })
