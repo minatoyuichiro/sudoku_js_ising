@@ -130,6 +130,31 @@ $(function(){
   }
  }
 
+ //初期設定値に局所解を設定
+ var input_arr = [];
+ for(var i=0;i<9;i++){
+  for(var j=0;j<9;j++){
+   if($('#input_'+i+'_'+j).val()){
+    input_arr.push(parseInt($('#input_'+i+'_'+j).val()))
+   }else{
+    input_arr.push(-1);
+   }
+  }
+ }
+ console.log(input_arr);
+
+ for(var i=0;i<81;i++){
+  if(input_arr[i] !=-1){
+   for(var j=0;j<9;j++){
+    if(j == input_arr[i]-1){
+     h[i][j] -= 1000;
+    }else{
+     h[i][j] += 1000;
+    }
+   }
+  }
+ }
+
  var anneal = setInterval(function(){
   for(var kk=0;kk<50000;kk++){
    var x = Math.floor(Math.random()*81);
@@ -253,7 +278,7 @@ $(function(){
  }
 
   T*=0.9;
-  console.log(T);
+  //console.log(T);
   if(T<0.7){
    var check = 0;
    //横チェック
@@ -295,7 +320,7 @@ $(function(){
       q[i][j] = Math.floor(Math.random()-0.5)*2+1;
      }
     }
-    clearInterval(anneal);
+    //clearInterval(anneal);
    }else{
     clearInterval(anneal);
    };
