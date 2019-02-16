@@ -10,17 +10,20 @@ body{font-family:courier;}
 .table-bordered td:nth-child(3n){border-right:2px solid black;}
 .table td{padding:0;}
 input{-webkit-appearance:none;border:0;background:none;text-align:center;font-weight:bold;line-height:35px;}
+.answer{position:absolute;top:0;left:0;width:100%;height:100%;text-align:center;line-height:35px;font-weight:bold;color:skyblue;opacity:0.6}
 </style>
 </head>
 <body>
 <div class="container" style="margin-top:20px">
 <div class="row">
 <div class="col-12">
-<h2 style="text-align:center;">SUDOKU</h2>
-<table class="table table-bordered" id="main"></div>
+<table class="table table-bordered" id="main"></table>
+<div style="text-align:center;margin-top:5px;">
+ <button id="sudoku" type="button" class="btn btn-outline-dark" style="font-size:24px;font-weight:bold;padding:1px 15px;border:3px solid black;">SUDOKU</button>
 </div>
 </div>
-</table>
+</div>
+</div>
 
 <script
   src="https://code.jquery.com/jquery-3.3.1.min.js"
@@ -29,16 +32,176 @@ input{-webkit-appearance:none;border:0;background:none;text-align:center;font-we
 
 <script>
 $(function(){
+ //マス目を書いて準備
  for(var i=0;i<9;i++){
   var row = '<tr>';
   for(var j=0;j<9;j++){
-   row += '<td><input type="number" pattern="\d*" style="width:100%;height:100%;"></td>';
+   row += '<td style="position:relative" id="'+i+'_'+j+'"><input type="number" pattern="\d*" style="width:100%;height:100%;position:relative;" id="input_'+i+'_'+j+'"><div class="answer" style="z-index:-1;" id="answer_'+i+'_'+j+'_1"></div><div class="answer" style="z-index:-2;" id="answer_'+i+'_'+j+'_2"></div><div class="answer" style="z-index:-3;" id="answer_'+i+'_'+j+'_3"></div><div class="answer" style="z-index:-4;" id="answer_'+i+'_'+j+'_4"></div><div class="answer" style="z-index:-5;" id="answer_'+i+'_'+j+'_5"></div><div class="answer" style="z-index:-6;" id="answer_'+i+'_'+j+'_6"></div><div class="answer" style="z-index:-7;" id="answer_'+i+'_'+j+'_7"></div><div class="answer" style="z-index:-8;" id="answer_'+i+'_'+j+'_8"></div><div class="answer" style="z-index:-9;" id="answer_'+i+'_'+j+'_9"></div></td>';
   };
   row += '</tr>';
   $('#main').append(row);
  };
-
  $('td').height(35);
+
+ $('#sudoku').click(function(){
+ $(".answer").html('');
+ //イジング計算部分
+ var q = new Array(729);
+ for(var i=0;i<81;i++){
+  q[i] = new Array(9);
+  for(var j=0;j<9;j++){
+   q[i][j] = Math.floor(Math.random()-0.5)*2+1; 
+  }
+ }
+
+ var J = new Array(81);
+ for(var i=0;i<81;i++){
+  J[i] = new Array(81);
+  for(var j=0;j<81;j++){
+   J[i][j] = new Array(9);
+   for(var k=0;k<9;k++){
+    J[i][j][k] = new Array(9);
+    for(var l=0;l<9;l++){
+     J[i][j][k][l] = 0;
+    }
+   }
+  }
+ }
+
+ var h = new Array(81);
+ for(var i=0;i<81;i++){
+  h[i] = new Array(9);
+  for(var j=0;j<9;j++){
+   h[i][j] = 0;
+  }
+ }
+
+ var T = 10;
+
+ //数字の表示系
+ for(var i=0;i<81;i++){
+  for(var j=0;j<9;j++){
+   if(q[i][j]==1){
+    $('#answer_'+Math.floor(i/9)+'_'+i%9+'_'+(j+1)).html(j+1);
+   }else{
+    $('#answer_'+Math.floor(i/9)+'_'+i%9+'_'+(j+1)).html('');
+   }
+  }
+ }
+
+ var L1 = 20;
+
+ for(var i=0;i<81;i++){
+  for(var j=0;j<9;j++){
+   h[i][j] = 3.5*L1;
+  }
+ }
+ console.log(h);
+
+ for(var i=0;i<81;i++){
+  for(var j=0;j<9;j++){
+   for(var k=0;k<9;k++){
+    J[i][i][j][k] = 0.5*L1;
+   }
+  } 
+ }
+ console.log(J)
+
+ //行ごとに同じ数字が出ないように調整
+ var L2 = 1.2;
+ for(var i=0;i<9;i++){
+  for(var j=0;j<9;j++){
+   for(var k=0;k<9;k++){
+    for(var l=0;l<9;l++){
+     J[j+i*9][k+i*9][l][l] += 1*L2;
+    }
+   }
+  } 
+ }
+
+ var anneal = setInterval(function(){
+  for(var kk=0;kk<2000;kk++){
+   var x = Math.floor(Math.random()*81);
+   var y = Math.floor(Math.random()*9);
+   //9こから1
+   var dE = -2*h[x][y];
+   for(var i=0;i<9;i++){
+    if(i!=y){
+     dE += -2*J[x][x][y][i]*q[x][i]
+    }
+   }
+
+   //行は違う数字
+   for(var i=0;i<9;i++){
+    if(x<9 && x!=i){
+     dE += -2*J[x][i][y][y]*q[i][y]
+    }
+   }
+   for(var i=9;i<18;i++){
+    if(8<x && x<18 && x!=i){
+     dE += -2*J[x][i][y][y]*q[i][y]
+    }
+   }
+   for(var i=18;i<27;i++){
+    if(17<x && x<27 && x!=i){
+     dE += -2*J[x][i][y][y]*q[i][y]
+    }
+   }
+   for(var i=27;i<36;i++){
+    if(26<x && x<36 && x!=i){
+     dE += -2*J[x][i][y][y]*q[i][y]
+    }
+   }
+   for(var i=36;i<45;i++){
+    if(35<x && x<45 && x!=i){
+     dE += -2*J[x][i][y][y]*q[i][y]
+    }
+   }
+   for(var i=45;i<54;i++){
+    if(44<x && x<54 && x!=i){
+     dE += -2*J[x][i][y][y]*q[i][y]
+    }
+   }
+   for(var i=54;i<63;i++){
+    if(53<x && x<63 && x!=i){
+     dE += -2*J[x][i][y][y]*q[i][y]
+    }
+   }
+   for(var i=63;i<72;i++){
+    if(62<x && x<72 && x!=i){
+     dE += -2*J[x][i][y][y]*q[i][y]
+    }
+   }
+   for(var i=72;i<81;i++){
+    if(71<x && x<81 && x!=i){
+     dE += -2*J[x][i][y][y]*q[i][y]
+    }
+   }
+
+   dE *= q[x][y];
+   if(Math.exp(-dE/T) > Math.random()){
+    q[x][y] = -q[x][y]
+   }
+  };
+
+ //数字の表示系
+ for(var i=0;i<81;i++){
+  for(var j=0;j<9;j++){
+   if(q[i][j]==1){
+    $('#answer_'+Math.floor(i/9)+'_'+i%9+'_'+(j+1)).html(j+1);
+   }else{
+    $('#answer_'+Math.floor(i/9)+'_'+i%9+'_'+(j+1)).html('');
+   }
+  }
+ }
+
+  T*=0.99;
+  console.log(T);
+  if(T<0.02){
+   clearInterval(anneal);
+  }
+ },10)
+ })
 
 })
 </script>
