@@ -1,0 +1,46 @@
+<!doctype html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+<style>
+body{font-family:courier;}
+.table-bordered{border:3px solid black;}
+.table-bordered tr:nth-child(3n){border-bottom:2px solid black;}
+.table-bordered td:nth-child(3n){border-right:2px solid black;}
+.table td{padding:0;}
+</style>
+</head>
+<body>
+<div class="container" style="margin-top:20px">
+<div class="row">
+<div class="col-12">
+<h2 style="text-align:center;">SUDOKU</h2>
+<table class="table table-bordered" id="main"></div>
+</div>
+</div>
+</table>
+
+<script
+  src="https://code.jquery.com/jquery-3.3.1.min.js"
+  integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="
+  crossorigin="anonymous"></script>
+
+<script>
+$(function(){
+ for(var i=0;i<9;i++){
+  var row = '<tr>';
+  for(var j=0;j<9;j++){
+   row += '<td><input type="number" pattern="\d*" style="width:100%;height:100%;"></td>';
+  };
+  row += '</tr>';
+  $('#main').append(row);
+ };
+
+ $('td').height(35);
+
+})
+</script>
+
+</body>
+</html>
