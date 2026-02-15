@@ -1,457 +1,132 @@
 <!doctype html>
 <html>
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
-<style>
-body{font-family:courier;}
-.table-bordered{border:3px solid black;}
-.table-bordered tr:nth-child(3n){border-bottom:2px solid black;}
-.table-bordered td:nth-child(3n){border-right:2px solid black;}
-.table td{padding:0;font-size:2rem;}
-input{-webkit-appearance:none;border:0;background:none;text-align:center;font-weight:bold;line-height:35px;}
-.answer{position:absolute;top:0;left:0;width:100%;height:100%;text-align:center;font-weight:bold;color:skyblue;opacity:0.7}
-</style>
+    <meta charset="UTF-8">
+    <title>QUBO Sudoku Solver</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <style>
+        body { font-family: 'Courier New', Courier, monospace; background-color: #f8f9fa; }
+        .table-bordered { border: 3px solid black !important; background-color: white; margin: 0 auto; }
+        .table-bordered tr:nth-child(3n) { border-bottom: 3px solid black !important; }
+        .table-bordered td:nth-child(3n) { border-right: 3px solid black !important; }
+        .table td { padding: 0; width: 50px; height: 50px; font-size: 2rem; position: relative; border: 1px solid #ccc; }
+        input { border: 0; background: transparent; text-align: center; font-weight: bold; width: 100%; height: 100%; outline: none; }
+        .answer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; line-height: 50px; text-align: center; font-weight: bold; color: skyblue; pointer-events: none; }
+        .btn-custom { font-size: 24px; font-weight: bold; border: 3px solid black; margin: 5px; }
+    </style>
 </head>
 <body>
-<div class="container" style="margin-top:20px">
-<div class="row">
-<div class="col-12">
-<table class="table table-bordered" id="main"></table>
-<div style="text-align:center;margin-top:5px;">
- <button id="sudoku" type="button" class="btn btn-outline-dark" style="font-size:24px;font-weight:bold;padding:1px 15px;border:3px solid black;">SUDOKU</button>
-</div>
-<div style="text-align:center;margin-top:5px;">
-  <button onclick="location.reload();" type="button" class="btn btn-outline-dark" style="font-size:24px;font-weight:bold;padding:1px 15px;border:3px solid black;">CLEAR</button>
-</div>
-</div>
-</div>
+
+<div class="container text-center" style="margin-top:20px">
+    <table class="table table-bordered" id="main"></table>
+    <div class="mt-3">
+        <button id="sudoku" class="btn btn-outline-dark btn-custom">SOLVE</button>
+        <button onclick="location.reload();" class="btn btn-outline-dark btn-custom">CLEAR</button>
+    </div>
+    <div id="status" class="mt-2" style="font-weight: bold; height: 30px;">Ready</div>
 </div>
 
-<script
-  src="https://code.jquery.com/jquery-3.3.1.min.js"
-  integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="
-  crossorigin="anonymous"></script>
+<script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+<script src="bqubo.js"></script>
 
 <script>
 $(function(){
- //マス目を書いて準備
- for(var i=0;i<9;i++){
-  var row = '<tr>';
-  for(var j=0;j<9;j++){
-   row += '<td style="position:relative" id="'+i+'_'+j+'"><input type="number" pattern="\d*" style="width:100%;height:100%;position:relative;" id="input_'+i+'_'+j+'"><div class="answer" style="z-index:-1;" id="answer_'+i+'_'+j+'_1"></div><div class="answer" style="z-index:-2;" id="answer_'+i+'_'+j+'_2"></div><div class="answer" style="z-index:-3;" id="answer_'+i+'_'+j+'_3"></div><div class="answer" style="z-index:-4;" id="answer_'+i+'_'+j+'_4"></div><div class="answer" style="z-index:-5;" id="answer_'+i+'_'+j+'_5"></div><div class="answer" style="z-index:-6;" id="answer_'+i+'_'+j+'_6"></div><div class="answer" style="z-index:-7;" id="answer_'+i+'_'+j+'_7"></div><div class="answer" style="z-index:-8;" id="answer_'+i+'_'+j+'_8"></div><div class="answer" style="z-index:-9;" id="answer_'+i+'_'+j+'_9"></div></td>';
-  };
-  row += '</tr>';
-  $('#main').append(row);
- };
- $('td').height(35);
-
- $('#sudoku').click(function(){
- $(".answer").html('');
- //イジング計算部分
- var q = new Array(729);
- for(var i=0;i<81;i++){
-  q[i] = new Array(9);
-  for(var j=0;j<9;j++){
-   q[i][j] = Math.floor(Math.random()-0.5)*2+1; 
-  }
- }
-
- var J = new Array(81);
- for(var i=0;i<81;i++){
-  J[i] = new Array(81);
-  for(var j=0;j<81;j++){
-   J[i][j] = new Array(9);
-   for(var k=0;k<9;k++){
-    J[i][j][k] = new Array(9);
-    for(var l=0;l<9;l++){
-     J[i][j][k][l] = 0;
+    // マス目生成
+    for(var i=0; i<9; i++){
+        var row = '<tr>';
+        for(var j=0; j<9; j++){
+            row += `<td id="cell_${i}_${j}"><input type="number" id="input_${i}_${j}">` +
+                   (Array.from({length: 9}, (_, k) => `<div class="answer" id="answer_${i}_${j}_${k+1}"></div>`).join('')) + `</td>`;
+        }
+        $('#main').append(row + '</tr>');
     }
-   }
-  }
- }
 
- var h = new Array(81);
- for(var i=0;i<81;i++){
-  h[i] = new Array(9);
-  for(var j=0;j<9;j++){
-   h[i][j] = 0;
-  }
- }
+    $('#sudoku').click(async function(){
+        const $btn = $(this).prop('disabled', true);
+        const qubo = {};
+        
+        // --- 重みのバランス調整 ---
+        const L_SELECT = 15.0; // マス埋め優先
+        const L_CONSTRAINT = 8.0; // 重複禁止
+        const L_FIXED = 30.0;    // 固定値（ヒント）
 
- var T = 100;
+        const addQ = (i, j, w) => {
+            const key = i < j ? i + ',' + j : j + ',' + i;
+            qubo[key] = (qubo[key] || 0) + w;
+        };
 
- //数字の表示系
- for(var i=0;i<81;i++){
-  for(var j=0;j<9;j++){
-   if(q[i][j]==1){
-    $('#answer_'+Math.floor(i/9)+'_'+i%9+'_'+(j+1)).html(j+1);
-   }else{
-    $('#answer_'+Math.floor(i/9)+'_'+i%9+'_'+(j+1)).html('');
-   }
-  }
- }
+        // QUBO構築
+        for (let n = 0; n < 81; n++) {
+            for (let k = 0; k < 9; k++) {
+                const idx = n * 9 + k;
+                addQ(idx, idx, -1 * L_SELECT); 
+                for (let k2 = k + 1; k2 < 9; k2++) addQ(idx, n * 9 + k2, 2 * L_SELECT);
+            }
+        }
+        for (let k = 0; k < 9; k++) {
+            for (let i = 0; i < 9; i++) {
+                for (let j = 0; j < 9; j++) {
+                    for (let m = j + 1; m < 9; m++) {
+                        addQ((i * 9 + j) * 9 + k, (i * 9 + m) * 9 + k, 2 * L_CONSTRAINT);
+                        addQ((j * 9 + i) * 9 + k, (m * 9 + i) * 9 + k, 2 * L_CONSTRAINT);
+                    }
+                }
+            }
+            for (let br = 0; br < 3; br++) {
+                for (let bc = 0; bc < 3; bc++) {
+                    let cells = [];
+                    for (let r = 0; r < 3; r++) {
+                        for (let c = 0; c < 3; c++) cells.push((br * 3 + r) * 9 + (bc * 3 + c));
+                    }
+                    for (let i = 0; i < 9; i++) {
+                        for (let j = i + 1; j < 9; j++) addQ(cells[i] * 9 + k, cells[j] * 9 + k, 2 * L_CONSTRAINT);
+                    }
+                }
+            }
+        }
+        for (let r = 0; r < 9; r++) {
+            for (let c = 0; c < 9; c++) {
+                const val = $('#input_' + r + '_' + c).val();
+                if (val) addQ((r * 9 + c) * 9 + (parseInt(val) - 1), (r * 9 + c) * 9 + (parseInt(val) - 1), -L_FIXED);
+            }
+        }
 
- var L1 = 110;
+        let attempt = 0;
+        let solved = false;
+        
+        while (!solved && attempt < 10) {
+            attempt++;
+            $('#status').text(`Attempt ${attempt}...`).css('color', 'black');
+            $(".answer").text('');
 
- for(var i=0;i<81;i++){
-  for(var j=0;j<9;j++){
-   h[i][j] = 3.5*L1;
-  }
- }
- //console.log(h);
+            // --- アニーリングパラメータ ---
+            // ほどよい性能: cl 0.998, rpt 5000
+            const solver = new Bqubo(qubo, { kTinit: 15.0, cl: 0.998, rpt: 5000 });
+            const finalState = await solver.solve(null);
 
- for(var i=0;i<81;i++){
-  for(var j=0;j<9;j++){
-   for(var k=0;k<9;k++){
-    J[i][i][j][k] = 0.5*L1;
-   }
-  } 
- }
- //console.log(J)
+            let total = 0;
+            for (let n = 0; n < 81; n++) {
+                for (let k = 0; k < 9; k++) {
+                    if (finalState[n * 9 + k] === 1) {
+                        $(`#answer_${Math.floor(n/9)}_${n%9}_${k+1}`).text(k + 1);
+                        total++;
+                    }
+                }
+            }
 
- var L2 = 3;
-
- //行ごとに同じ数字が出ないように調整
- for(var i=0;i<9;i++){
-  for(var j=0;j<9;j++){
-   for(var k=0;k<9;k++){
-    for(var l=0;l<9;l++){
-     J[j+i*9][k+i*9][l][l] += L2;
-    }
-   }
-  } 
- }
-
- //列ごとに同じ数字が出ないように調整
- for(var i=0;i<9;i++){
-  for(var j=0;j<9;j++){
-   for(var k=0;k<9;k++){
-    for(var l=0;l<9;l++){
-     J[j*9+i][k*9+i][l][l] += L2;
-    }
-   }
-  }
- }
-
- //周辺9マス
- for(var j=0;j<3;j++){
- for(var k=0;k<3;k++){
- for(var l=0;l<9;l++){
-
-  J[0+k*3+j*27][10+k*3+j*27][l][l] += L2;
-  J[0+k*3+j*27][11+k*3+j*27][l][l] += L2;
-  J[0+k*3+j*27][19+k*3+j*27][l][l] += L2;
-  J[0+k*3+j*27][20+k*3+j*27][l][l] += L2;
-
-  J[1+k*3+j*27][9+k*3+j*27][l][l] += L2;
-  J[1+k*3+j*27][11+k*3+j*27][l][l] += L2;
-  J[1+k*3+j*27][18+k*3+j*27][l][l] += L2;
-  J[1+k*3+j*27][20+k*3+j*27][l][l] += L2;
-
-  J[2+k*3+j*27][9+k*3+j*27][l][l] += L2;
-  J[2+k*3+j*27][10+k*3+j*27][l][l] += L2;
-  J[2+k*3+j*27][18+k*3+j*27][l][l] += L2;
-  J[2+k*3+j*27][19+k*3+j*27][l][l] += L2;
-
-  J[9+k*3+j*27][1+k*3+j*27][l][l] += L2;
-  J[9+k*3+j*27][2+k*3+j*27][l][l] += L2;
-  J[9+k*3+j*27][19+k*3+j*27][l][l] += L2;
-  J[9+k*3+j*27][20+k*3+j*27][l][l] += L2;
-
-  J[10+k*3+j*27][0+k*3+j*27][l][l] += L2;
-  J[10+k*3+j*27][2+k*3+j*27][l][l] += L2;
-  J[10+k*3+j*27][18+k*3+j*27][l][l] += L2;
-  J[10+k*3+j*27][20+k*3+j*27][l][l] += L2;
-
-  J[11+k*3+j*27][0+k*3+j*27][l][l] += L2;
-  J[11+k*3+j*27][1+k*3+j*27][l][l] += L2;
-  J[11+k*3+j*27][18+k*3+j*27][l][l] += L2;
-  J[11+k*3+j*27][19+k*3+j*27][l][l] += L2;
-
-  J[18+k*3+j*27][1+k*3+j*27][l][l] += L2;
-  J[18+k*3+j*27][2+k*3+j*27][l][l] += L2;
-  J[18+k*3+j*27][10+k*3+j*27][l][l] += L2;
-  J[18+k*3+j*27][11+k*3+j*27][l][l] += L2;
-
-  J[19+k*3+j*27][0+k*3+j*27][l][l] += L2;
-  J[19+k*3+j*27][2+k*3+j*27][l][l] += L2;
-  J[19+k*3+j*27][9+k*3+j*27][l][l] += L2;
-  J[19+k*3+j*27][11+k*3+j*27][l][l] += L2;
-
-  J[20+k*3+j*27][0+k*3+j*27][l][l] += L2;
-  J[20+k*3+j*27][1+k*3+j*27][l][l] += L2;
-  J[20+k*3+j*27][9+k*3+j*27][l][l] += L2;
-  J[20+k*3+j*27][10+k*3+j*27][l][l] += L2;
-
- }
- }
- }
-
- //初期設定値に局所解を設定
- var input_arr = [];
- for(var i=0;i<9;i++){
-  for(var j=0;j<9;j++){
-   if($('#input_'+i+'_'+j).val()){
-    input_arr.push(parseInt($('#input_'+i+'_'+j).val()))
-   }else{
-    input_arr.push(-1);
-   }
-  }
- }
-
- for(var i=0;i<81;i++){
-  if(input_arr[i] !=-1){
-   for(var j=0;j<9;j++){
-    if(j == input_arr[i]-1){
-     h[i][j] -= 50;
-    }else{
-     h[i][j] += 50;
-    }
-   }
-  }
- }
-
-
- var anneal = setInterval(function(){
-  for(var kk=0;kk<50000;kk++){
-   var x = Math.floor(Math.random()*81);
-   var y = Math.floor(Math.random()*9);
-   //9こから1
-   var dE = -2*h[x][y];
-   for(var i=0;i<9;i++){
-    if(i!=y){
-     dE += -2*J[x][x][y][i]*q[x][i]
-    }
-   }
-
-   //行は違う数字
-   for(var i=0;i<9;i++){
-    if(x<9 && x!=i){
-     dE += -2*J[x][i][y][y]*q[i][y]
-    }
-   }
-   for(var i=9;i<18;i++){
-    if(8<x && x<18 && x!=i){
-     dE += -2*J[x][i][y][y]*q[i][y]
-    }
-   }
-   for(var i=18;i<27;i++){
-    if(17<x && x<27 && x!=i){
-     dE += -2*J[x][i][y][y]*q[i][y]
-    }
-   }
-   for(var i=27;i<36;i++){
-    if(26<x && x<36 && x!=i){
-     dE += -2*J[x][i][y][y]*q[i][y]
-    }
-   }
-   for(var i=36;i<45;i++){
-    if(35<x && x<45 && x!=i){
-     dE += -2*J[x][i][y][y]*q[i][y]
-    }
-   }
-   for(var i=45;i<54;i++){
-    if(44<x && x<54 && x!=i){
-     dE += -2*J[x][i][y][y]*q[i][y]
-    }
-   }
-   for(var i=54;i<63;i++){
-    if(53<x && x<63 && x!=i){
-     dE += -2*J[x][i][y][y]*q[i][y]
-    }
-   }
-   for(var i=63;i<72;i++){
-    if(62<x && x<72 && x!=i){
-     dE += -2*J[x][i][y][y]*q[i][y]
-    }
-   }
-   for(var i=72;i<81;i++){
-    if(71<x && x<81 && x!=i){
-     dE += -2*J[x][i][y][y]*q[i][y]
-    }
-   }
-
-   //列は違う数字
-   for(var i=0;i<9;i++){
-    if(x%9==0 && x!=i*9){
-     dE += -2*J[x][i*9][y][y]*q[i*9][y]
-    }
-   }
-   for(var i=0;i<9;i++){
-    if(x%9==1 && x!=i*9+1){
-     dE += -2*J[x][i*9+1][y][y]*q[i*9+1][y]
-    }
-   }
-   for(var i=0;i<9;i++){
-    if(x%9==2 && x!=i*9+2){
-     dE += -2*J[x][i*9+2][y][y]*q[i*9+2][y]
-    }
-   }
-   for(var i=0;i<9;i++){
-    if(x%9==3 && x!=i*9+3){
-     dE += -2*J[x][i*9+3][y][y]*q[i*9+3][y]
-    }
-   }
-   for(var i=0;i<9;i++){
-    if(x%9==4 && x!=i*9+4){
-     dE += -2*J[x][i*9+4][y][y]*q[i*9+4][y]
-    }
-   }
-   for(var i=0;i<9;i++){
-    if(x%9==5 && x!=i*9+5){
-     dE += -2*J[x][i*9+5][y][y]*q[i*9+5][y]
-    }
-   }
-   for(var i=0;i<9;i++){
-    if(x%9==6 && x!=i*9+6){
-     dE += -2*J[x][i*9+6][y][y]*q[i*9+6][y]
-    }
-   }
-   for(var i=0;i<9;i++){
-    if(x%9==7 && x!=i*9+7){
-     dE += -2*J[x][i*9+7][y][y]*q[i*9+7][y]
-    }
-   }
-   for(var i=0;i<9;i++){
-    if(x%9==8 && x!=i*9+8){
-     dE += -2*J[x][i*9+8][y][y]*q[i*9+8][y]
-    }
-   }
-
-  if(x==0 || x==3 || x==6 || x==27 || x==30 || x==33 || x==54 || x==57 || x==60){
-   dE += -2*J[x][x+10][y][y]*q[x+10][y];
-   dE += -2*J[x][x+11][y][y]*q[x+11][y];
-   dE += -2*J[x][x+19][y][y]*q[x+19][y];
-   dE += -2*J[x][x+20][y][y]*q[x+20][y];
-  }
-
-  if(x==1 || x==4 || x==7 || x==28 || x==31 || x==34 || x==55 || x==58 || x==61){
-   dE += -2*J[x][x+8][y][y]*q[x+8][y];
-   dE += -2*J[x][x+10][y][y]*q[x+10][y];
-   dE += -2*J[x][x+17][y][y]*q[x+17][y];
-   dE += -2*J[x][x+19][y][y]*q[x+19][y];
-  }
-
-  if(x==2 || x==5 || x==8 || x==29 || x==32 || x==35 || x==56 || x==59 || x==62){
-   dE += -2*J[x][x+7][y][y]*q[x+7][y];
-   dE += -2*J[x][x+8][y][y]*q[x+8][y];
-   dE += -2*J[x][x+16][y][y]*q[x+16][y];
-   dE += -2*J[x][x+17][y][y]*q[x+17][y];
-  }
-
-  if(x==9 || x==12 || x==15 || x==36 || x==39 || x==42 || x==63 || x==66 || x==69){
-   dE += -2*J[x][x-8][y][y]*q[x-8][y];
-   dE += -2*J[x][x-7][y][y]*q[x-7][y];
-   dE += -2*J[x][x+10][y][y]*q[x+10][y];
-   dE += -2*J[x][x+11][y][y]*q[x+11][y];
-  }
-
-  if(x==10 || x==13 || x==16 || x==37 || x==40 || x==43 || x==64 || x==67 || x==70){
-   dE += -2*J[x][x-10][y][y]*q[x-10][y];
-   dE += -2*J[x][x-8][y][y]*q[x-8][y];
-   dE += -2*J[x][x+8][y][y]*q[x+8][y];
-   dE += -2*J[x][x+10][y][y]*q[x+10][y];
-  }
-
-  if(x==11 || x==14 || x==17 || x==38 || x==41 || x==44 || x==65 || x==68 || x==71){
-   dE += -2*J[x][x-11][y][y]*q[x-11][y];
-   dE += -2*J[x][x-10][y][y]*q[x-10][y];
-   dE += -2*J[x][x+7][y][y]*q[x+7][y];
-   dE += -2*J[x][x+8][y][y]*q[x+8][y];
-  }
-
-  if(x==18 || x==21 || x==24 || x==45 || x==48 || x==51 || x==72 || x==75 || x==78){
-   dE += -2*J[x][x-17][y][y]*q[x-17][y];
-   dE += -2*J[x][x-16][y][y]*q[x-16][y];
-   dE += -2*J[x][x-8][y][y]*q[x-8][y];
-   dE += -2*J[x][x-7][y][y]*q[x-7][y];
-  }
-
-  if(x==19 || x==22 || x==25 || x==46 || x==49 || x==52 || x==73 || x==76 || x==79){
-   dE += -2*J[x][x-19][y][y]*q[x-19][y];
-   dE += -2*J[x][x-17][y][y]*q[x-17][y];
-   dE += -2*J[x][x-10][y][y]*q[x-10][y];
-   dE += -2*J[x][x-8][y][y]*q[x-8][y];
-  }
-
-  if(x==20 || x==23 || x==26 || x==47 || x==50 || x==53 || x==74 || x==77 || x==80){
-   dE += -2*J[x][x-20][y][y]*q[x-20][y];
-   dE += -2*J[x][x-19][y][y]*q[x-19][y];
-   dE += -2*J[x][x-11][y][y]*q[x-11][y];
-   dE += -2*J[x][x-10][y][y]*q[x-10][y];
-  }
-
-   dE *= q[x][y];
-   if(Math.exp(-dE/T) > Math.random()){
-    q[x][y] = -q[x][y]
-   }
-  };
-
- //数字の表示系
- for(var i=0;i<81;i++){
-  for(var j=0;j<9;j++){
-   if(q[i][j]==1){
-    $('#answer_'+Math.floor(i/9)+'_'+i%9+'_'+(j+1)).html(j+1);
-   }else{
-    $('#answer_'+Math.floor(i/9)+'_'+i%9+'_'+(j+1)).html('');
-   }
-  }
- }
-
-  T*=0.9;
-  //console.log(T);
-  if(T<0.7){
-   var check = 0;
-   //横チェック
-   for(var m=0;m<9;m++){
-    var E1 = 0
-    for(var i=0+9*m;i<9+9*m;i++){
-     for(var j=0;j<9;j++){
-      if(q[i][j] == 1){
-       E1 += j;
-      }
-     }
-    }
-    console.log(E1);
-    if(E1 != 36 ){
-     check++;
-    }
-   }
-
-   //縦チェック
-   for(var m=0;m<9;m++){
-    var E1 = 0
-    for(var i=0;i<9;i++){
-     for(var j=0;j<9;j++){
-      if(q[i*9+m][j] == 1){
-       E1 += j;
-      }
-     }
-    }
-    console.log(E1);
-    if(E1 != 36 ){
-     check++;
-    }
-   }
-
-   if(check !=0){
-    T=100;
-    for(var i=0;i<81;i++){
-     for(var j=0;j<9;j++){
-      q[i][j] = Math.floor(Math.random()-0.5)*2+1;
-     }
-    }
-    //clearInterval(anneal);
-   }else{
-    clearInterval(anneal);
-   };
-  }
- },1)
- })
-
-})
+            if (total === 81) {
+                $('#status').text(`Success! (${attempt} tries)`).css('color', 'green');
+                solved = true;
+            } else {
+                // 失敗時は少し待ってリトライ
+                await new Promise(r => setTimeout(r, 500));
+            }
+        }
+        
+        if(!solved) $('#status').text(`Failed. Try again.`).css('color', 'red');
+        $btn.prop('disabled', false);
+    });
+});
 </script>
-
 </body>
 </html>
